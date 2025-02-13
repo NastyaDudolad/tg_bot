@@ -119,17 +119,18 @@ def main():
             update_id = get_update_id(update)
 
             if update_id not in responded_updates:
-                if order_step == 1:
-                    current_order['client'] = text_input
-                    send_message(get_chat_id(update), 'Введите ваш номер телефона:')
-                    order_step = 2
-
                 if order_step == 2:
                     current_order['phone'] = text_input
                     db.add_booked_time(current_order)
                     send_message(get_chat_id(update), 'Вы успешно записаны!')
                     order_step = 0
 
+                if order_step == 1:
+                    current_order['name'] = text_input
+                    send_message(get_chat_id(update), 'Введите ваш номер телефона:')
+                    order_step = 2
+
+                # Sign up begins
                 if re.match(r'^/\d+$', text_input):
                     current_order['number'] = text_input[1:]
                     send_message(get_chat_id(update), 'Введите ваше имя:')
