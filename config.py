@@ -1,0 +1,2 @@
+TOKEN = '7257468936:AAFRNrqsyP3CALaYwl5Le_wTt_hYc1tcUlI'
+DATABASE = 'orders.db'
