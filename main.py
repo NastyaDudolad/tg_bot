@@ -40,10 +40,11 @@ def get_id_command(update):
 
 def help_command(update):
     help_answ = '''
-        /work_schedule
-        /sign_up
-        /cancel_order
-        /free_windows
+Доступные команды:
+/work_schedule
+/sign_up
+/cancel_order
+/free_windows
                         '''
     send_message(get_chat_id(update), help_answ)
 
