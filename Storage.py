@@ -48,14 +48,14 @@ class Storage:
         # Insert data to the table orders
         # booked_times_id relevant to id in the booked_times and info about client and phone
         self.cursor.execute('''INSERT INTO orders(booked_times_id, client, phone) VALUES (?, ?, ?)''',
-                                      (id, name, phone))
+                            (id, name, phone))
         self.connection.commit()
-        #self.connection.close()
+        # self.connection.close()
+
+    def delete_booked_time(self):
+        self.cursor.execute('DELETE FROM orders WHERE id = ?', (id))
+        self.connection.commit()
+
 
 if __name__ == '__main__':
     print('Not here please')
-
-
-
-
-

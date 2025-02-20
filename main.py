@@ -86,6 +86,18 @@ def end_order():
     db.add_booked_time(current_order)
 
 
+def delete_number_command(update):
+    delete_step = 1
+
+
+def process_delete(update, text_input):
+    if re.match(r'^\d+$', text_input):
+        data = db.delete_booked_time()
+        send_message(get_chat_id(update), 'Запись успешно удалена!')
+    else:
+        send_message(get_chat_id(update), 'Ошибка: введите корректный номер записи!')
+
+
 current_order = {
     'number': 0,
     'name': '',
@@ -97,7 +109,8 @@ command_definitions = {
     '/help': help_command,
     '/free_windows': free_windows_command,
     '/work_schedule': work_schedule_command,
-    '/sign_up': sign_up_command
+    '/sign_up': sign_up_command,
+    '/cancel_order': delete_number_command
 }
 
 signup_cancel_functions = ['/get_id', '/help', '/free_windows', '/work_schedule']
@@ -107,6 +120,7 @@ db = Storage.Storage()
 
 def main():
     order_step = 0
+    delete_step = 0
 
     while True:
         time.sleep(1)
@@ -120,6 +134,16 @@ def main():
             update_id = get_update_id(update)
 
             if update_id not in responded_updates:
+                # delete_step
+                if delete_step == 1:
+                    delete_number_command(update)
+                    delete_step = 0
+
+                if text_input == '/cancel_order':
+                    send_message(get_chat_id(update), 'Введите номер записи:')
+                    delete_step = 1
+
+                # order_step
                 if order_step == 2:
                     current_order['phone'] = text_input
                     db.add_booked_time(current_order)
