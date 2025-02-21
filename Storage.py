@@ -52,9 +52,9 @@ class Storage:
         self.connection.commit()
         # self.connection.close()
 
-    def delete_booked_time(self, id):
+    def delete_booked_time(self, time_id):
         # Find id in booked_times relevant to given schedule_id
-        result = self.cursor.execute(f'SELECT * FROM booked_times WHERE schedule_id = {id}')
+        result = self.cursor.execute(f'SELECT * FROM booked_times WHERE schedule_id = {time_id}')
         parsed_row = result.fetchall()
         booked_times_id = parsed_row[0][0]
 
