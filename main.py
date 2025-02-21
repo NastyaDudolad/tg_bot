@@ -91,11 +91,7 @@ def delete_number_command(update):
 
 
 def process_delete(update, text_input):
-    if re.match(r'^\d+$', text_input):
-        data = db.delete_booked_time()
-        send_message(get_chat_id(update), 'Запись успешно удалена!')
-    else:
-        send_message(get_chat_id(update), 'Ошибка: введите корректный номер записи!')
+    pass
 
 
 current_order = {
@@ -117,7 +113,6 @@ signup_cancel_functions = ['/get_id', '/help', '/free_windows', '/work_schedule'
 
 db = Storage.Storage()
 
-
 def main():
     order_step = 0
     delete_step = 0
@@ -136,7 +131,13 @@ def main():
             if update_id not in responded_updates:
                 # delete_step
                 if delete_step == 1:
-                    delete_number_command(update)
+                    # delete_number_command(update)
+                    if re.match(r'^\d+$', text_input):
+                        delete_number = text_input
+                        db.delete_booked_time(delete_number)
+                        send_message(get_chat_id(update), 'Вы успешно удалили запись!')
+                    else:
+                        send_message(get_chat_id(update), 'Не номер')
                     delete_step = 0
 
                 if text_input == '/cancel_order':

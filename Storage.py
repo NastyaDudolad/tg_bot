@@ -52,8 +52,15 @@ class Storage:
         self.connection.commit()
         # self.connection.close()
 
-    def delete_booked_time(self):
-        self.cursor.execute('DELETE FROM orders WHERE id = ?', (id))
+    def delete_booked_time(self, id):
+        # Find id in booked_times relevant to given schedule_id
+        result = self.cursor.execute(f'SELECT * FROM booked_times WHERE schedule_id = {id}')
+        parsed_row = result.fetchall()
+        booked_times_id = parsed_row[0][0]
+
+        # Delete from booked_times and orders simulteniously
+        self.cursor.execute(f'DELETE FROM booked_times WHERE id = {booked_times_id}')
+        self.cursor.execute(f'DELETE FROM orders WHERE booked_times_id = {booked_times_id}')
         self.connection.commit()
 
 
