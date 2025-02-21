@@ -21,16 +21,23 @@ def get_update():
     return response.json()
 
 
+def get_updates():
+    response = requests.get(url + 'getUpdates?limit=100')
+    json = response.json()
+    print(json)
+    return json
+
+
 def get_message_text(update):
-    return update['result'][0]['message']['text']
+    return update['message']['text']
 
 
 def get_chat_id(update):
-    return update['result'][0]['message']['chat']['id']
+    return update['message']['chat']['id']
 
 
 def get_update_id(update):
-    return update['result'][0]['update_id']
+    return update['update_id']
 
 
 # Functions for processing user commands
@@ -121,51 +128,54 @@ def main():
         time.sleep(1)
 
         try:
-            update = get_update()
-            text_input = get_message_text(update)
+            updates = get_updates()
+            updates = updates['result']
 
-            # Чи немає поточного update_id у списку тих на які відповідали
-            # Тоді надаємо відповідь і записуємо update_id до списку тих на які відповідали
-            update_id = get_update_id(update)
+            for update in updates:
+                text_input = get_message_text(update)
 
-            if update_id not in responded_updates:
-                # delete_step
-                if delete_step == 1:
-                    # delete_number_command(update)
-                    if re.match(r'^\d+$', text_input):
-                        delete_number = text_input
-                        db.delete_booked_time(delete_number)
-                        send_message(get_chat_id(update), 'Вы успешно удалили запись!')
-                    else:
-                        send_message(get_chat_id(update), 'Не номер')
-                    delete_step = 0
+                # Чи немає поточного update_id у списку тих на які відповідали
+                # Тоді надаємо відповідь і записуємо update_id до списку тих на які відповідали
+                update_id = get_update_id(update)
 
-                if text_input == '/cancel_order':
-                    send_message(get_chat_id(update), 'Введите номер записи:')
-                    delete_step = 1
+                if update_id not in responded_updates:
+                    # delete_step
+                    if delete_step == 1:
+                        # delete_number_command(update)
+                        if re.match(r'^\d+$', text_input):
+                            delete_number = text_input
+                            db.delete_booked_time(delete_number)
+                            send_message(get_chat_id(update), 'Вы успешно удалили запись!')
+                        else:
+                            send_message(get_chat_id(update), 'Не номер')
+                        delete_step = 0
 
-                # order_step
-                if order_step == 2:
-                    current_order['phone'] = text_input
-                    db.add_booked_time(current_order)
-                    send_message(get_chat_id(update), 'Вы успешно записаны!')
-                    order_step = 0
+                    if text_input == '/cancel_order':
+                        send_message(get_chat_id(update), 'Введите номер записи:')
+                        delete_step = 1
 
-                if order_step == 1:
-                    current_order['name'] = text_input
-                    send_message(get_chat_id(update), 'Введите ваш номер телефона:')
-                    order_step = 2
+                    # order_step
+                    if order_step == 2:
+                        current_order['phone'] = text_input
+                        db.add_booked_time(current_order)
+                        send_message(get_chat_id(update), 'Вы успешно записаны!')
+                        order_step = 0
 
-                # Sign up begins
-                if re.match(r'^/\d+$', text_input):
-                    current_order['number'] = text_input[1:]
-                    send_message(get_chat_id(update), 'Введите ваше имя:')
-                    order_step = 1
+                    if order_step == 1:
+                        current_order['name'] = text_input
+                        send_message(get_chat_id(update), 'Введите ваш номер телефона:')
+                        order_step = 2
 
-                if text_input in command_definitions:
-                    command_definitions[text_input](update)
+                    # Sign up begins
+                    if re.match(r'^/\d+$', text_input):
+                        current_order['number'] = text_input[1:]
+                        send_message(get_chat_id(update), 'Введите ваше имя:')
+                        order_step = 1
 
-                responded_updates.append(update_id)
+                    if text_input in command_definitions:
+                        command_definitions[text_input](update)
+
+                    responded_updates.append(update_id)
 
         except Exception as e:
             print('Something wrong in main loop:', e)
