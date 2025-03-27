@@ -8,18 +8,30 @@ import re
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text('Hello', reply_markup=ReplyKeyboardRemove())
+    response = '''
+     Доступные команды:
+    /work_schedule - рабочий график
+    /sign_up - записаться
+    /cancel_order - отменить запись
+    /free_windows - время для записи
+    /cancel - отменить 
+    /help - помощь по командам
+    '''
+    await update.message.reply_text(response, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    answer = '''
+    response = '''
     Доступные команды:
-    /work_schedule
-    /sign_up
-    /cancel_order
-    /free_windows'''
-    await update.message.reply_text(answer, reply_markup=ReplyKeyboardRemove())
+   /work_schedule - рабочий график
+   /sign_up - записаться
+   /cancel_order - отменить запись
+   /free_windows - время для записи
+   /cancel - отменить 
+   /help - помощь по командам
+   '''
+    await update.message.reply_text(response, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 
@@ -40,6 +52,7 @@ async def work_schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         work_schedule += f'{row[0]}\n'
     await update.message.reply_text(work_schedule, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
 
 ###
 # Order cancellation
@@ -73,7 +86,7 @@ async def sign_up_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
     for row in data:
         keyboard.append([InlineKeyboardButton(
-            f"Номер записи: /{row[0]}, дата: {row[1]}, время: {row[2]}",
+            f"Номер записи: {row[0]}, дата: {row[1]}, время: {row[2]}",
             callback_data=row[0]
         )])
 
