@@ -116,6 +116,7 @@ async def input_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def sign_up_ending(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     phone = update.message.text
+    current_order['chat_id'] = update.message.chat.id
     current_order['phone'] = phone
     db.add_booked_time(current_order)
     await update.message.reply_text(text=f"<b>Вы успешно записаны! Ваш номер записи: {current_order['number']}</b>",
@@ -133,7 +134,8 @@ db = Storage.Storage()
 current_order = {
     'number': 0,
     'name': '',
-    'phone': ''
+    'phone': '',
+    'chat_id': 0
 }
 
 

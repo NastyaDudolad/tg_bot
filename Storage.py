@@ -35,6 +35,7 @@ class Storage:
         name = order_dict['name']
         phone = order_dict['phone']
         number = int(order_dict['number'])
+        chat_id = int(order_dict['chat_id'])
 
         # Client choose the time. Write it in the booked_times table
         self.cursor.execute(f'INSERT INTO booked_times(schedule_id) VALUES ({number})')
@@ -47,10 +48,13 @@ class Storage:
 
         # Insert data to the table orders
         # booked_times_id relevant to id in the booked_times and info about client and phone
-        self.cursor.execute('''INSERT INTO orders(booked_times_id, client, phone) VALUES (?, ?, ?)''',
-                            (id, name, phone))
+        self.cursor.execute('''INSERT INTO orders(booked_times_id, client, phone, chat_id) VALUES (?, ?, ?, ?)''',
+                            (id, name, phone, chat_id))
         self.connection.commit()
         # self.connection.close()
+
+
+
 
     def delete_booked_time(self, time_id):
         # Find id in booked_times relevant to given schedule_id
