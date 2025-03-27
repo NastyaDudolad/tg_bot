@@ -1,187 +1,161 @@
-import requests
-import time
-import sys
-import os
+from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, Update,
+                      InlineKeyboardButton, InlineKeyboardMarkup)
+from telegram.ext import (Application, CallbackQueryHandler, CommandHandler,
+                          ContextTypes, ConversationHandler, MessageHandler, filters)
 import config
 import Storage
 import re
 
-responded_updates = []
 
-url = f'https://api.telegram.org/bot{config.TOKEN}/'
-
-
-def send_message(chat_id, text):
-    response = requests.get((url + f'sendMessage?chat_id={chat_id}&text={text}'))
-    return response.json()
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text('Hello', reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
 
 
-def get_update():
-    response = requests.get(url + 'getUpdates?offset=-1')
-    return response.json()
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    answer = '''
+    Доступные команды:
+    /work_schedule
+    /sign_up
+    /cancel_order
+    /free_windows'''
+    await update.message.reply_text(answer, reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
 
 
-def get_updates():
-    response = requests.get(url + 'getUpdates?limit=100')
-    json = response.json()
-    print(json)
-    return json
-
-
-def get_message_text(update):
-    return update['message']['text']
-
-
-def get_chat_id(update):
-    return update['message']['chat']['id']
-
-
-def get_update_id(update):
-    return update['update_id']
-
-
-# Functions for processing user commands
-def get_id_command(update):
-    print('Chat_id', get_chat_id(update))
-
-
-def help_command(update):
-    help_answ = '''
-Доступные команды:
-/work_schedule
-/sign_up
-/cancel_order
-/free_windows
-                        '''
-    send_message(get_chat_id(update), help_answ)
-
-
-def free_windows_command(update):
+async def free_windows(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     data = db.get_free_windows()
     schedule_text = "Свободные места:\n"
 
     for row in data:
         schedule_text += f"Номер записи: {row[0]}, дата: {row[1]}, время: {row[2]}\n"
-        # print(f"ID: {row[0]}, Дата: {row[1]}, Время: {row[2]}")
+    await update.message.reply_text(schedule_text, reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
 
-    send_message(get_chat_id(update), schedule_text)
 
-
-def work_schedule_command(update):
+async def work_schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     data = db.get_work_schedule()
     work_schedule = 'Время работы:\n'
     for row in data:
         work_schedule += f'{row[0]}\n'
-    send_message(get_chat_id(update), work_schedule)
+    await update.message.reply_text(work_schedule, reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+###
+# Order cancellation
+###
+async def cancel_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("Введите номер записи:", reply_markup=ReplyKeyboardRemove())
+    return 1
 
 
-def sign_up_command(update):
+async def end_of_cancellation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # delete_number_command(update)
+    if re.match(r'^\d+$', update.message.text):
+        delete_number = update.message.text
+        db.delete_booked_time(delete_number)
+        await update.message.reply_text("Вы успешно удалили запись!", reply_markup=ReplyKeyboardRemove())
+    else:
+        await update.message.reply_text("Не номер", reply_markup=ReplyKeyboardRemove())
+
+    return ConversationHandler.END
+
+
+###
+# Sign up
+###
+async def sign_up_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     data = db.get_free_windows()
     sign_up_text = 'Выберите номер записи:\n'
+
+    # Define inline buttons for car color selection
+    keyboard = []
+
     for row in data:
-        sign_up_text += f"Номер записи: /{row[0]}, дата: {row[1]}, время: {row[2]}\n"
-    send_message(get_chat_id(update), sign_up_text)
+        keyboard.append([InlineKeyboardButton(
+            f"Номер записи: /{row[0]}, дата: {row[1]}, время: {row[2]}",
+            callback_data=row[0]
+        )])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(sign_up_text, reply_markup=reply_markup)
+    return 1
 
 
-def number_command(update, number):
-    order_step = 1
-    current_order['number'] = number
-    send_message(get_chat_id(update), 'Введите ваше имя и фамилию:')
+async def input_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    input_number = query.data
+    current_order['number'] = int(input_number)
+
+    await query.edit_message_text(text='<b>Введите ваше имя:</b>', parse_mode='HTML')
+    return 2
 
 
-def end_order():
+async def input_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    name = update.message.text
+    current_order['name'] = name
+    test = current_order
+    await update.message.reply_text(text='<b>Введите ваш телефон:</b>', parse_mode='HTML')
+    return 3
+
+
+async def sign_up_ending(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    phone = update.message.text
+    current_order['phone'] = phone
     db.add_booked_time(current_order)
+    await update.message.reply_text(text=f"<b>Вы успешно записаны! Ваш номер записи: {current_order['number']}</b>",
+                                    parse_mode='HTML')
+
+    return ConversationHandler.END
 
 
-def delete_number_command(update):
-    delete_step = 1
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text('Bye! Hope to talk to you again soon.', reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
 
 
-def process_delete(update, text_input):
-    pass
-
-
+db = Storage.Storage()
 current_order = {
     'number': 0,
     'name': '',
     'phone': ''
 }
 
-command_definitions = {
-    '/get_id': get_id_command,
-    '/help': help_command,
-    '/free_windows': free_windows_command,
-    '/work_schedule': work_schedule_command,
-    '/sign_up': sign_up_command,
-    '/cancel_order': delete_number_command
-}
 
-signup_cancel_functions = ['/get_id', '/help', '/free_windows', '/work_schedule']
+def main() -> None:
+    """Run the bot."""
+    application = Application.builder().token(config.TOKEN).build()
 
-db = Storage.Storage()
+    sign_up_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler('sign_up', sign_up_start)
+        ],
+        states={
+            1: [CallbackQueryHandler(input_name)],
+            2: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_phone)],
+            3: [MessageHandler(filters.TEXT & ~filters.COMMAND, sign_up_ending)]
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
 
-def main():
-    order_step = 0
-    delete_step = 0
-
-    while True:
-        time.sleep(1)
-
-        try:
-            updates = get_updates()
-            updates = updates['result']
-
-            for update in updates:
-                text_input = get_message_text(update)
-
-                # Чи немає поточного update_id у списку тих на які відповідали
-                # Тоді надаємо відповідь і записуємо update_id до списку тих на які відповідали
-                update_id = get_update_id(update)
-
-                if update_id not in responded_updates:
-                    # delete_step
-                    if delete_step == 1:
-                        # delete_number_command(update)
-                        if re.match(r'^\d+$', text_input):
-                            delete_number = text_input
-                            db.delete_booked_time(delete_number)
-                            send_message(get_chat_id(update), 'Вы успешно удалили запись!')
-                        else:
-                            send_message(get_chat_id(update), 'Не номер')
-                        delete_step = 0
-
-                    if text_input == '/cancel_order':
-                        send_message(get_chat_id(update), 'Введите номер записи:')
-                        delete_step = 1
-
-                    # order_step
-                    if order_step == 2:
-                        current_order['phone'] = text_input
-                        db.add_booked_time(current_order)
-                        send_message(get_chat_id(update), 'Вы успешно записаны!')
-                        order_step = 0
-
-                    if order_step == 1:
-                        current_order['name'] = text_input
-                        send_message(get_chat_id(update), 'Введите ваш номер телефона:')
-                        order_step = 2
-
-                    # Sign up begins
-                    if re.match(r'^/\d+$', text_input):
-                        current_order['number'] = text_input[1:]
-                        send_message(get_chat_id(update), 'Введите ваше имя:')
-                        order_step = 1
-
-                    if text_input in command_definitions:
-                        command_definitions[text_input](update)
-
-                    responded_updates.append(update_id)
-
-        except Exception as e:
-            print('Something wrong in main loop:', e)
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno)
+    cancellation_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler('cancel_order', cancel_order)
+        ],
+        states={
+            1: [MessageHandler(filters.TEXT & ~filters.COMMAND, end_of_cancellation)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('help', help))
+    application.add_handler(CommandHandler('free_windows', free_windows))
+    application.add_handler(CommandHandler('work_schedule', work_schedule))
+    application.add_handler(sign_up_handler)
+    application.add_handler(cancellation_handler)
+    application.run_polling()
 
 
 if __name__ == '__main__':
