@@ -63,13 +63,26 @@ async def cancel_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 
 async def end_of_cancellation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    # delete_number_command(update)
-    if re.match(r'^\d+$', update.message.text):
-        delete_number = update.message.text
-        db.delete_booked_time(delete_number)
-        await update.message.reply_text("Вы успешно удалили запись!", reply_markup=ReplyKeyboardRemove())
+    user_chat_id = update.message.chat.id  # ID пользователя, который отправил команду
+    delete_number = update.message.text  # Номер записи, который он хочет удалить
+
+    if not re.match(r'^\d+$', delete_number):
+        await update.message.reply_text("Некорректный номер записи. Попробуйте снова.",
+                                        reply_markup=ReplyKeyboardRemove())
+        return ConversationHandler.END
+
+    # Получаем данные о записи из базы данных
+    order_chat_id = db.get_booking_by_id(delete_number)  # ID пользователя, который сделал запись
+
+    if order_chat_id:
+        if user_chat_id == order_chat_id:
+            db.delete_booked_time(delete_number)
+            await update.message.reply_text("Вы успешно удалили запись!", reply_markup=ReplyKeyboardRemove())
+        else:
+            await update.message.reply_text("Вы не можете удалить эту запись, так как она вам не принадлежит.",
+                                            reply_markup=ReplyKeyboardRemove())
     else:
-        await update.message.reply_text("Не номер", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text("Запись с таким номером не найдена.", reply_markup=ReplyKeyboardRemove())
 
     return ConversationHandler.END
 

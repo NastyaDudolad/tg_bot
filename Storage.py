@@ -53,9 +53,6 @@ class Storage:
         self.connection.commit()
         # self.connection.close()
 
-
-
-
     def delete_booked_time(self, time_id):
         # Find id in booked_times relevant to given schedule_id
         result = self.cursor.execute(f'SELECT * FROM booked_times WHERE schedule_id = {time_id}')
@@ -66,6 +63,24 @@ class Storage:
         self.cursor.execute(f'DELETE FROM booked_times WHERE id = {booked_times_id}')
         self.cursor.execute(f'DELETE FROM orders WHERE booked_times_id = {booked_times_id}')
         self.connection.commit()
+
+    def get_booking_by_id(self, order_id):
+        sql = f'''
+        SELECT o.chat_id 
+        FROM booked_times AS bt
+        LEFT JOIN orders AS o
+        ON bt.id = o.booked_times_id
+        WHERE bt.schedule_id = {order_id} 
+        LIMIT 1
+        '''
+        result = self.cursor.execute(sql)
+        parsed_record = result.fetchone()
+        chat_id = 0
+
+        if result.fetchone():
+            chat_id = parsed_record[0]
+
+        return chat_id
 
 
 if __name__ == '__main__':
