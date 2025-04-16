@@ -3,7 +3,7 @@ from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, Update,
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler,
                           ContextTypes, ConversationHandler, MessageHandler, filters)
 import config
-import Storage
+import Storage_postgresql
 import re
 
 
@@ -143,7 +143,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
-db = Storage.Storage()
+db = Storage_postgresql.Storage()
 current_order = {
     'number': 0,
     'name': '',
